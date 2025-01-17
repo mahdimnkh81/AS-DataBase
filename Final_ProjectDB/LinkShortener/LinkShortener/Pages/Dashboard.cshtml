@@ -1,0 +1,263 @@
+﻿@page
+@model DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<style>
+    body {
+        background: linear-gradient(135deg, #d4fc79, #96e6a1);
+        font-family: Arial, sans-serif;
+    }
+
+    .dashboard-title {
+        color: #2d3436;
+        margin-bottom: 20px;
+        text-shadow: 1px 1px 2px #95a5a6;
+    }
+
+    .card {
+        background-color: #ffffff;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .card-title {
+        color: #27ae60;
+    }
+
+    .table th {
+        background-color: #2ecc71;
+        color: white;
+        text-align: center;
+    }
+
+    .table td {
+        text-align: center;
+        color: #2d3436;
+    }
+
+    .btn-primary, .btn-secondary {
+        background-color: #27ae60;
+        border-color: #27ae60;
+        color: white;
+        width: 100%;
+    }
+
+        .btn-primary:hover, .btn-secondary:hover {
+            background-color: #219150;
+            border-color: #219150;
+        }
+
+    .alert {
+        margin-top: 10px;
+        background-color: #d4fc79;
+        color: #2d3436;
+        border: 1px solid #27ae60;
+    }
+
+    .chart-container {
+        margin: 20px 0;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-header {
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+</style>
+
+<div class="container mt-4">
+    <h1 class="dashboard-title">Dashboard</h1>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Message"]
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    <!-- نمایش تعداد لینک‌های ثبت‌شده و ارجاعات -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Registered Links Today</h5>
+                    <p class="card-text">@Model.RegisteredLinksToday</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Referred Links Today</h5>
+                    <p class="card-text">@Model.ReferredLinksToday</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نمودار -->
+    <div class="chart-container">
+        <div class="chart-header">Daily Link Statistics</div>
+        <canvas id="linkChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- فرم ایجاد لینک کوتاه -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Create Short URL</h5>
+            <form method="post" asp-page-handler="CreateShortUrl">
+                <div class="form-group">
+                    <label for="originalUrl">Enter Original URL:</label>
+                    <input type="text" id="originalUrl" name="OriginalUrl" class="form-control" />
+                </div>
+                <button type="submit" class="btn btn-primary">Shorten URL</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- فرم بازیابی لینک اصلی -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Retrieve Original URL</h5>
+            <form method="post" asp-page-handler="RetrieveOriginalUrl">
+                <div class="form-group">
+                    <label for="shortUrl">Enter Short URL:</label>
+                    <input type="text" id="shortUrl" name="ShortUrl" class="form-control" />
+                </div>
+                <button type="submit" class="btn btn-secondary">Retrieve Original URL</button>
+            </form>
+
+            @if (!string.IsNullOrWhiteSpace(Model.RetrievedOriginalUrl))
+            {
+                <div class="alert alert-info mt-3">
+                    <strong>Original URL:</strong> @Model.RetrievedOriginalUrl
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- لینک‌های برتر -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Top Links</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Short URL</th>
+                        <th>Original URL</th>
+                        <th>Total Accesses</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.TopLinks.Count; i++)
+                    {
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>@Model.TopLinks[i].ShortURL</td>
+                            <td>@Model.TopLinks[i].OriginalURL</td>
+                            <td>@Model.TopLinks[i].TotalAccesses</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- تمام لینک‌ها -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">All Links</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Short URL</th>
+                        <th>Original URL</th>
+                        <th>Total Accesses</th>
+                        <th>Remaining Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Links.Count; i++)
+                    {
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>@Model.Links[i].ShortURL</td>
+                            <td>@Model.Links[i].OriginalURL</td>
+                            <td>@Model.Links[i].TotalAccesses</td>
+                            <td>@Model.Links[i].RemainingExpiration</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const registeredLinksData = [@Model.RegisteredLinksToday];
+        const referredLinksData = [@Model.ReferredLinksToday];
+        const days = ['Today'];
+
+        const ctx = document.getElementById('linkChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [
+                    {
+                        label: 'Registered Links',
+                        data: registeredLinksData,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                    },
+                    {
+                        label: 'Referred Links',
+                        data: referredLinksData,
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Daily Link Activity',
+                    },
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                    },
+                    y: {
+                        beginAtZero: true,
+                    },
+                },
+            },
+        });
+    </script>
+}
